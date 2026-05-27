@@ -3,7 +3,7 @@ compileSdk = "36"
 minSdk = "26"
 targetSdk = "36"
 versionCode = "1"
-versionName = "1.0.0-SNAPSHOT"
+versionName = "0.0.1"
 applicationId = "dev.axiom.sdk.sample"
 
 gradle = "9.1.0"
