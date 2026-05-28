@@ -19,15 +19,15 @@ No Koin, no KSP, no KMP — vanilla Android only.
 | Item | Value |
 |------|-------|
 | Repository | `axiom-sdk` |
-| Maven group | `dev.axiom` |
-| Maven artifact | `sdk` |
-| Maven coordinate | `dev.axiom:sdk:1.0.0-SNAPSHOT` |
+| Maven group | `io.github.andrew-malitchuk` |
+| Maven artifact | `axiom-sdk` |
+| Maven coordinate | `io.github.andrew-malitchuk:axiom-sdk:0.0.1` |
 | SDK namespace | `dev.axiom.sdk` |
 | Sample app ID | `dev.axiom.sdk.sample` |
 
 Consumer import root:
 ```kotlin
-implementation("dev.axiom:sdk:1.0.0")
+implementation("io.github.andrew-malitchuk:axiom-sdk:0.0.1")
 import dev.axiom.sdk.source.hinge.rememberHingeAngle
 ```
 

@@ -21,6 +21,7 @@ dependencies {
     implementation(libs.detekt.gradle.plugin)
     implementation(libs.ktlint.gradle.plugin)
     implementation(libs.compose.compiler.gradle)
+    implementation(libs.nmcp.gradle.plugin)
 }
 
 gradlePlugin {

@@ -29,7 +29,7 @@ dependencyResolutionManagement {
 ```kotlin
 // build.gradle.kts (app / feature module)
 dependencies {
-    implementation("dev.axiom:sdk:0.0.1")
+    implementation("io.github.andrew-malitchuk:axiom-sdk:0.0.1")
 }
 ```
 

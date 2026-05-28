@@ -2,6 +2,7 @@ package convention.source.conventionplugin.android
 
 import convention.core.ext.lib
 import convention.core.ext.plugins
+import nmcp.NmcpExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.publish.PublishingExtension
@@ -12,39 +13,36 @@ import org.gradle.kotlin.dsl.the
 import org.gradle.plugins.signing.SigningExtension
 
 /**
- * Convention plugin that wires up Maven publication and GPG signing for an Android library.
+ * Convention plugin that wires up Maven publication, GPG signing, and Maven Central Portal
+ * (via nmcp) for an Android library.
  *
  * ## Publication
  * Registers a single `release` publication backed by AGP's `release` component (AAR +
  * transitive metadata). Sources JAR is included via `singleVariant("release")`.
  * The module sets [Project.group] and [Project.version] in its own `build.gradle.kts`;
  * this plugin picks them up automatically.
+ * Artifact ID is explicitly set to `axiom-sdk`.
  *
  * ## Repositories
- * - `mavenLocal()` — always present, useful for local consumer testing.
- * - Sonatype OSSRH — release versions go to the staging repo; SNAPSHOT versions go to
- *   the snapshot repo. Credentials are read from env vars or `gradle.properties`.
+ * `mavenLocal()` is always present for local consumer testing. Sonatype Central Portal
+ * publication is handled by the nmcp plugin — run `./gradlew publishAllPublicationsToCentralPortal`.
  *
  * ## Signing
- * Signs the `release` publication using GPG. Signing is **required for release versions**
- * and **optional for SNAPSHOTs** so local and CI snapshot builds do not fail when no key
- * is configured.
+ * Signs the `release` publication using GPG. Required for release versions, optional for
+ * SNAPSHOTs so local and CI snapshot builds succeed without a key configured.
  *
- * Key resolution order (both local and CI-friendly):
+ * Key resolution order:
  * 1. Environment variables: `SIGNING_KEY_ID`, `SIGNING_KEY`, `SIGNING_KEY_PASSWORD`
  * 2. Project-local file: `configure/signing/secrets.properties` (gitignored)
- * 3. Gradle properties (e.g. `~/.gradle/gradle.properties`):
- *    `signing.keyId`, `signing.key`, `signing.password`
+ * 3. Gradle properties (`~/.gradle/gradle.properties`): `signing.keyId`, `signing.key`, `signing.password`
  *
  * `signing.key` must be the ASCII-armored private key as a single line with literal `\n`
- * separators (the output of `gpg --armor --export-secret-keys <KEY_ID>` collapsed to one line).
- * Store it in `configure/signing/secrets.properties` for local development or as a CI secret
- * for automated builds. Never commit key material to the repo.
+ * separators. See `configure/signing/README.md` for details.
  *
- * OSSRH credential resolution order:
- * 1. Environment variables: `OSSRH_USERNAME`, `OSSRH_PASSWORD`
+ * Central Portal credential resolution order:
+ * 1. Environment variables: `CENTRAL_USERNAME`, `CENTRAL_PASSWORD`
  * 2. Project-local file: `configure/signing/secrets.properties`
- * 3. Gradle properties: `ossrhUsername`, `ossrhPassword`
+ * 3. Gradle properties: `centralUsername`, `centralPassword`
  */
 public class AndroidPublishConventionPlugin : Plugin<Project> {
 
@@ -52,6 +50,7 @@ public class AndroidPublishConventionPlugin : Plugin<Project> {
         plugins {
             apply("maven-publish")
             apply("signing")
+            apply("com.gradleup.nmcp")
         }
 
         lib {
@@ -74,6 +73,10 @@ public class AndroidPublishConventionPlugin : Plugin<Project> {
                 publications {
                     register<MavenPublication>("release") {
                         from(project.components.getByName("release"))
+
+                        groupId = project.group.toString()
+                        artifactId = "axiom-sdk"
+                        version = project.version.toString()
 
                         pom {
                             name.set("Axiom SDK")
@@ -111,22 +114,6 @@ public class AndroidPublishConventionPlugin : Plugin<Project> {
 
                 repositories {
                     mavenLocal()
-                    maven {
-                        name = "sonatype"
-                        url = if (isSnapshot) {
-                            uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
-                        } else {
-                            uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-                        }
-                        credentials {
-                            username = System.getenv("OSSRH_USERNAME")
-                                ?: secrets.getProperty("ossrhUsername")
-                                ?: findProperty("ossrhUsername")?.toString()
-                            password = System.getenv("OSSRH_PASSWORD")
-                                ?: secrets.getProperty("ossrhPassword")
-                                ?: findProperty("ossrhPassword")?.toString()
-                        }
-                    }
                 }
             }
 
@@ -149,6 +136,21 @@ public class AndroidPublishConventionPlugin : Plugin<Project> {
                 // fail when no key is configured.
                 setRequired { !isSnapshot }
                 sign(the<PublishingExtension>().publications.getByName("release"))
+            }
+
+            val centralUsername = System.getenv("CENTRAL_USERNAME")
+                ?: secrets.getProperty("centralUsername")
+                ?: findProperty("centralUsername")?.toString()
+            val centralPassword = System.getenv("CENTRAL_PASSWORD")
+                ?: secrets.getProperty("centralPassword")
+                ?: findProperty("centralPassword")?.toString()
+
+            configure<NmcpExtension> {
+                publishAllPublications {
+                    username.set(centralUsername ?: "")
+                    password.set(centralPassword ?: "")
+                    publicationType.set(if (isSnapshot) "AUTOMATIC" else "USER_MANAGED")
+                }
             }
         }
     }

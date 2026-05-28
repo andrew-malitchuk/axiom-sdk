@@ -4,7 +4,7 @@ plugins {
     id("convention.publish")
 }
 
-group = "dev.axiom"
+group = "io.github.andrew-malitchuk"
 version = "0.0.1"
 
 android {
